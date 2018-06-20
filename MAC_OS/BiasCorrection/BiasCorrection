@@ -1,0 +1,41 @@
+#!/Applications/Slicer.app/Contents/bin/python-real
+# -*- coding: utf-8 -*-
+
+###IMPORTANT: this script must NOT have the .py extension
+
+import sys
+import os
+import subprocess
+
+if __name__ == '__main__':
+  moduleDir=os.path.dirname(os.path.realpath(__file__))
+  
+#### save input arguments as a text file
+  args=sys.argv[1::]
+  f=open(moduleDir+'/Logic/arguments.txt','w')
+  for elem in args:
+    if elem=='.':
+      elem=os.path.realpath(elem)
+    f.write(elem+'\n')
+  f.close()
+
+###change current working directory to the module directory  
+  os.chdir(moduleDir)
+  
+##get 3DSlicer main folder location and lauch logic script within slicer framework
+  pythonPath=os.path.realpath(sys.executable)
+
+  if sys.platform=='darwin':
+    slicerDir=os.path.dirname(os.path.dirname(os.path.dirname(pythonPath)))
+    process = subprocess.call(['open','-n',slicerDir,'--args','--no-main-window','--python-script',moduleDir+'/Logic/logic.py'])
+
+  else:
+    slicerDir = os.path.dirname(os.path.dirname(pythonPath))
+    process = subprocess.Popen([slicerDir+'/Slicer', '--no-main-window','--python-script',moduleDir+'/Logic/logic.py'], stdout=subprocess.PIPE)
+    out, err = process.communicate()
+    print(out)
+
+
+
+
+

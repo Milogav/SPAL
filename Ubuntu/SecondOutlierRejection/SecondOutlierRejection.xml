@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+
+  <category>Motion correction</category>
+  <title>5 - 2nd outlier rejection</title>
+  <description>This module computes the second outlier rejection. </description>
+  <version>1.0</version>
+  <documentation-url></documentation-url>
+  <license></license>
+  <contributor>Miguel Lopez Gavilan</contributor>
+
+<parameters>
+    <label>IO</label>
+    <description>Input/output parameters</description>
+
+    <file>
+	    <name>nonRigidUterusSelector</name>
+        <label>Non-rigid (uterus) inter-MC bold: </label>
+        <channel>input</channel>
+        <index>0</index>
+    </file>
+
+    <file>
+        <name>rigidBrainSelector</name>
+        <label>Rigid (brain) inter-MC bold: </label>
+        <channel>input</channel>
+        <default>None</default>
+        <index>1</index>
+    </file>
+
+    <file>
+        <name>refVolSelector</name>
+        <label>Reference volume: </label>
+        <channel>input</channel>
+        <index>2</index>
+    </file>
+
+    <file>
+	    <name>brainMaskSelector</name>
+        <label>Brain mask: </label>
+        <channel>input</channel>
+	    <default>None</default>
+        <index>3</index>
+    </file>
+
+    <string>
+    	<name>brainThresholds</name>
+    	<label>Max perc. outlier voxels for brain: </label>
+    	<channel>input</channel>
+	    <default>0.05</default>
+	    <index>4</index>		  
+    </string>
+
+    <file>
+	    <name>liverMaskSelector</name>
+        <label>Input liver mask: </label>
+        <channel>input</channel>
+	    <default>None</default>
+        <index>5</index>
+    </file>
+
+    <string>
+    	<name>liverThresholds</name>
+    	<label>Max perc. outlier voxels for liver: </label>
+    	<channel>input</channel>
+	    <default>0.05</default>
+	    <index>6</index>		  
+    </string>
+
+    <file>
+	    <name>placentaMaskSelector</name>
+        <label>Placenta mask: </label>
+        <channel>input</channel>
+	    <default>None</default>
+        <index>7</index>
+    </file>
+
+    <string>
+    	<name>PlacentaThresholds</name>
+    	<label>Max perc. outlier voxels for placenta: </label>
+    	<channel>input</channel>
+	    <default>0.05</default>
+	    <index>8</index>		  
+    </string>
+
+    <directory> 
+	    <name>outputSelector</name>
+        <label>Output folder: </label>
+        <channel>input</channel>
+        <index>9</index>
+    </directory>
+
+    <string>
+       	<name>outputOutliersDirName</name>
+        <label>Output name for outlier's folder': </label>
+        <channel>input</channel>
+        <default>Outliers</default>
+        <index>10</index>
+    </string>
+
+  </parameters>
+
+</executable>

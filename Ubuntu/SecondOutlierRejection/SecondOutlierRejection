@@ -1,0 +1,239 @@
+#!/usr/bin/env python-real
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import subprocess
+import nibabel as nib
+import numpy as np
+import time
+import shutil
+
+###########################FUNCTION DEFINITIONS###########################
+  
+def load_nii(imgPath):
+    imgNii = nib.load(imgPath)
+    array = imgNii.get_data()
+    return imgNii,array
+
+def save_nii(array,nii_data,out_path):
+    if not '.gz' in out_path:
+        out_path += '.gz'
+    img = nib.Nifti1Image(array, nii_data.affine, nii_data.header)
+    nib.save(img,out_path)
+
+def getRefIdx(refVolPath):
+    pos = refVolPath.find('.')
+    refVolPath = refVolPath[0:pos].split('_')
+    idx = int(refVolPath[1])
+    return idx
+                
+#####################################################################################
+                
+if __name__ == '__main__':
+    nonRigidUterusPath = sys.argv[1]
+    rigidBrainPath = sys.argv[2]
+    refVolPath = sys.argv[3]
+    brainMaskPath = sys.argv[4]
+    brainThr = sys.argv[5]
+    liverMaskPath = sys.argv[6]
+    liverThr = sys.argv[7]
+    placentaMaskPath = sys.argv[8]
+    placentaThr = sys.argv[9]
+    outPath=sys.argv[10]
+    outOutlierDirName = sys.argv[11]
+
+    if outPath == '.':  ###if the output folder is the HOME directory, the path string must be corrected
+        outPath = os.path.realpath(outPath)
+    
+    outOutliersDir = outPath+os.sep+outOutlierDirName
+    if not os.path.isdir(outOutliersDir):
+        os.makedirs(outOutliersDir)
+
+    refIdx = getRefIdx(refVolPath)
+####### load and check the available masks and volumes
+
+    _,nonRigidUterus = load_nii(nonRigidUterusPath)
+    _,refVol = load_nii(refVolPath)
+
+    r,c,p,n = nonRigidUterus.shape
+
+    isBrain = False
+    isLiverMask = False
+    isPlacentaMask = False
+
+    if rigidBrainPath.lower() != 'none':
+        _,rigidBrain = load_nii(rigidBrainPath)
+        if brainMaskPath.lower() != 'none':
+            _,brainMask = load_nii(brainMaskPath)
+            brainMask = brainMask.astype(bool)
+            brainThr = float(brainThr)
+            isBrain = True
+        
+    if liverMaskPath.lower() != 'none':
+        _,liverMask = load_nii(liverMaskPath)
+        liverMask = liverMask.astype(bool)
+        liverThr = float(liverThr)
+        isLiverMask = True
+        
+    if placentaMaskPath.lower() != 'none':
+        _,placentaMask = load_nii(placentaMaskPath)
+        placentaMask = placentaMask.astype(bool)
+        placentaThr = float(placentaThr)
+        isPlacentaMask = True
+
+    ################################################### reject first outlier volumes ##########################################################
+    begin = time.time()
+
+    logDir = outPath+os.sep+'Logs'
+    if not os.path.isdir(logDir):
+        os.makedirs(logDir)
+    log = open(logDir+os.sep+'log_step5.txt','w')
+    log.write('STARTING SECOND OUTLIER REJECTION...    ')
+    
+    ############### second outlier removal step #############
+
+    ####### BRAIN OUTLIERS ##########
+    if isBrain:
+        log.write('\nRejecting outlier volumes for brain ROI...    ');log.flush()
+    
+        brainOutlierList = list()
+        brainVoxels = np.sum(brainMask)
+        
+        lastVol = refVol
+        meanBrain = np.mean(lastVol[brainMask])
+        for i in range(refIdx-1,-1,-1):
+            currVol = rigidBrain[:,:,:,i]
+            diff = np.abs(currVol-lastVol)
+            outlierVoxels = (diff > meanBrain) * brainMask
+            brainOutliers = np.sum(outlierVoxels)
+            brainOutPerc = brainOutliers / brainVoxels
+            if brainOutPerc > brainThr:
+                brainOutlierList.append(i)
+            
+            currVol[outlierVoxels] = lastVol[outlierVoxels]
+            lastVol = currVol
+            meanBrain = np.mean(lastVol[brainMask])
+            
+        lastVol = refVol
+        meanBrain = np.mean(lastVol[brainMask])
+        for i in range(refIdx+1,n):
+            currVol = rigidBrain[:,:,:,i]
+            diff = np.abs(currVol-lastVol)
+            outlierVoxels = (diff>meanBrain)*brainMask
+            brainOutliers = np.sum(outlierVoxels)
+            brainOutPerc = brainOutliers / brainVoxels
+            if brainOutPerc > brainThr:
+                brainOutlierList.append(i)
+
+            currVol[outlierVoxels] = lastVol[outlierVoxels]
+            lastVol = currVol
+            meanBrain = np.mean(lastVol[brainMask])
+
+
+        f = open(outOutliersDir+os.sep+'brainOutliers_2.txt','w')
+        log.write('The following volumes were finally rejected: \n');log.flush()
+        brainOutlierList = np.unique(np.array(brainOutlierList))
+        for elem in brainOutlierList:
+            f.write(str(elem)+' ')
+            log.write(str(elem)+' ');log.flush()
+        f.close()
+    ############################################
+
+    ###### LIVER OUTLIERS #########
+    if isLiverMask:
+        log.write('\nRejecting outlier volumes for liver ROI...    ');log.flush()
+        
+        liverOutlierList = list()
+        liverVoxels = np.sum(liverMask)
+        
+        lastVol = refVol
+        meanLiver = np.mean(lastVol[liverMask])
+        for i in range(refIdx-1,-1,-1):
+            currVol = nonRigidUterus[:,:,:,i]
+            diff = np.abs(currVol-lastVol)
+            outlierVoxels = (diff > meanLiver) * liverMask
+            liverOutliers = np.sum(outlierVoxels)
+            liverOutPerc = liverOutliers / liverVoxels
+            if liverOutPerc > liverThr:
+                liverOutlierList.append(i)
+
+            currVol[outlierVoxels] = lastVol[outlierVoxels]
+            lastVol = currVol
+            meanLiver = np.mean(lastVol[liverMask])
+            
+
+        lastVol = refVol
+        meanLiver = np.mean(lastVol[liverMask])
+        for i in range(refIdx+1,n):
+            currVol = nonRigidUterus[:,:,:,i]
+            diff = np.abs(currVol-lastVol)
+            outlierVoxels = (diff > meanLiver) * liverMask
+            liverOutliers = np.sum(outlierVoxels)
+            liverOutPerc = liverOutliers / liverVoxels
+            if liverOutPerc > liverThr:
+                liverOutlierList.append(i)
+
+            currVol[outlierVoxels] = lastVol[outlierVoxels]
+            lastVol = currVol
+            meanLiver = np.mean(lastVol[liverMask])
+
+        log.write('The following volumes were finally rejected: \n');log.flush()
+        f = open(outOutliersDir+os.sep+'liverOutliers_2.txt','w')
+        liverOutlierList = np.unique(np.array(liverOutlierList))
+        for elem in liverOutlierList:
+            f.write(str(elem)+' ')
+            log.write(str(elem)+' ');log.flush()
+        f.close()
+      #################
+
+    ###### PLACENTA OUTLIERS #########
+    if isPlacentaMask:
+        log.write('\nRejecting outlier volumes for placenta ROI...    ');log.flush()
+        
+        placentaOutlierList = list()
+        placentaVoxels = np.sum(placentaMask)
+        
+        lastVol = refVol
+        meanPlacenta = np.mean(lastVol[placentaMask])
+        for i in range(refIdx-1,-1,-1):
+            currVol = nonRigidUterus[:,:,:,i]
+            diff = np.abs(currVol-lastVol)
+            outlierVoxels = (diff > meanPlacenta) * placentaMask
+            placentaOutliers = np.sum(outlierVoxels)
+            placentaOutPerc = placentaOutliers / placentaVoxels
+            if placentaOutPerc > placentaThr:
+                placentaOutlierList.append(i)
+
+            currVol[outlierVoxels] = lastVol[outlierVoxels]
+            lastVol = currVol
+            meanPlacenta = np.mean(lastVol[placentaMask])
+
+
+        lastVol=refVol
+        meanPlacenta=np.mean(lastVol[placentaMask])
+        for i in range(refIdx+1,n):
+            currVol = nonRigidUterus[:,:,:,i]
+            diff = np.abs(currVol-lastVol)
+            outlierVoxels = (diff > meanPlacenta) * placentaMask
+            placentaOutliers = np.sum(outlierVoxels)
+            placentaOutPerc = placentaOutliers / placentaVoxels
+            if placentaOutPerc > placentaThr:
+                placentaOutlierList.append(i)
+                
+            currVol[outlierVoxels] = lastVol[outlierVoxels]
+            lastVol = currVol
+            meanPlacenta = np.mean(lastVol[placentaMask])
+
+        log.write('The following volumes were finally rejected: \n');log.flush()
+        f = open(outOutliersDir+os.sep+'placentaOutliers_2.txt','w')
+        placentaOutlierList = np.unique(np.array(placentaOutlierList))
+        for elem in placentaOutlierList:
+            f.write(str(elem)+' ')
+            log.write(str(elem)+' ');log.flush()
+        f.close()
+      #################
+    
+    totalTime = time.time() - begin
+    log.write('\nDONE SUCCESSFULLY!          TOTAL ELAPSED TIME: '+str(totalTime)+' sec')
+    log.close()

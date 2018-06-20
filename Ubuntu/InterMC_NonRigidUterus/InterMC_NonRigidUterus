@@ -1,0 +1,132 @@
+#!/usr/bin/env python-real
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import subprocess
+import nibabel as nib
+import numpy as np
+import time
+import shutil
+
+###########################FUNCTION DEFINITIONS###########################
+  
+def load_nii(imgPath):
+    imgNii=nib.load(imgPath)
+    array=imgNii.get_data()
+    return imgNii,array
+
+def save_nii(array,nii_data,out_path):
+    if not '.gz' in out_path:
+        out_path += '.gz'
+    img = nib.Nifti1Image(array, nii_data.affine, nii_data.header)
+    nib.save(img,out_path)
+                
+def launchElastix(elastixDir,fixedPath,movingPath,fixedMaskPath,movingMaskPath,outPath,parametersPath,initialTransformPath=None):
+    executablePath=elastixDir+os.sep+'bin'+os.sep+'elastix'
+    if initialTransformPath:
+        subprocess.check_output([executablePath,'-f',fixedPath,'-m',movingPath,'-out',outPath,'-p',parametersPath,'-fMask',fixedMaskPath,'-mMask',movingMaskPath,'-t0',initialTransformPath])
+    else:
+        subprocess.check_output([executablePath,'-f',fixedPath,'-m',movingPath,'-out',outPath,'-p',parametersPath,'-fMask',fixedMaskPath,'-mMask',movingMaskPath])
+
+def launchTransformix(elastixDir,imgPath,transformPath,outPath):
+    executablePath=elastixDir+os.sep+'bin'+os.sep+'transformix'
+    subprocess.check_output([executablePath,'-tp',transformPath,'-out',outPath,'-in',imgPath,'-jac','all'])
+
+def getRefIdx(refVolPath):
+    pos = refVolPath.find('.')
+    refVolPath = refVolPath[0:pos].split('_')
+    idx = int(refVolPath[1])
+    return idx
+#####################################################################################
+                
+if __name__ == '__main__':
+
+    boldPath = sys.argv[1]
+    refPath = sys.argv[2]
+    uterusMaskPath = sys.argv[3]
+    rigidTransformsDir = sys.argv[4]
+    outPath = sys.argv[5]
+    outName = sys.argv[6]
+    
+    if outPath == '.':  ###if the output folder is the HOME directory, the path string must be corrected
+        outPath=os.path.realpath(outPath)
+
+    ######################################################load bold and uterus masks ###########################################################
+  
+    boldNii,bold=load_nii(boldPath)
+    boldFileName=os.path.basename(boldPath)
+    _,uterusMask=load_nii(uterusMaskPath)
+    uterusMask=uterusMask.astype(bool)
+        
+    ######################################### get module location, load elastix path from the textfile and set up the environment variables ##########################
+    moduleDir=os.path.dirname(os.path.realpath(__file__))
+    configDir=os.path.dirname(moduleDir)+os.sep+'_config'
+    f=open(configDir+os.sep+'elastixPath.txt','r')
+    elastixDir=f.read().rstrip()
+    f.close()
+    if sys.platform == 'darwin':
+        dyldpath=os.environ['DYLD_LIBRARY_PATH']
+        os.environ['DYLD_LIBRARY_PATH']=dyldpath+':'+elastixDir+os.sep+'lib'
+    else:
+        ldpath=os.environ['LD_LIBRARY_PATH']
+        os.environ['LD_LIBRARY_PATH']=ldpath+':'+elastixDir+os.sep+'lib'
+
+    ################################################## start intervolume correction #########################################################
+    
+    ##define the temporary paths for the registered volumes and computed transforms
+    ###create temporary folder to store the iteration results. It will be deleted at the end of the module execution
+    tmpPath=outPath+os.sep+'tmp'
+    if not os.path.isdir(tmpPath):
+        os.mkdir(tmpPath)
+    movingPath=tmpPath+os.sep+'movingVolume.nii'
+    deformableRegPath=tmpPath+os.sep+'defReg.nii'
+
+    nonRigidParametersPath=configDir+os.sep+'RegistrationParameterFiles'+os.sep+'nonRigidUterusParameters.txt'
+    
+    r,c,p,n=bold.shape
+    nonRigidUterus=np.zeros((r,c,p,n))
+    jac = np.zeros((r,c,p,n))
+
+    logDir = outPath+os.sep+'Logs'
+    if not os.path.isdir(logDir):
+            os.makedirs(logDir)
+    log = open(logDir+os.sep+'log_step4-3.txt','w')
+    log.write('\nSTARTING SECOND NON RIGID REGISTRATION OVER UTERUS MASK...\n')
+
+    begin = time.time()
+    lenNum = len(str(n))
+    refIdx = getRefIdx(refPath)
+    for i in range(0,n):
+        initTrfPath = rigidTransformsDir+os.sep+'rigidTrf_vol'+str(i)+'.txt'
+        if i == refIdx:
+            nonRigidUterus[:,:,:,refIdx]=bold[:,:,:,refIdx]
+            log.write('Skip reference volume registration\n');log.flush()
+        else:
+            log.write('Registering volume '+str(i)+'/'+str(n-1)+'. Using initial rigid transform @: '+initTrfPath+'  ');log.flush()
+            
+            start=time.time()
+
+            save_nii(bold[:,:,:,i],boldNii,movingPath)
+
+            launchElastix(elastixDir,refPath,movingPath,uterusMaskPath,uterusMaskPath,tmpPath,nonRigidParametersPath,initialTransformPath=initTrfPath)
+            _,regVol=load_nii(tmpPath+os.sep+'result.0.nii')
+            nonRigidUterus[:,:,:,i]=regVol
+
+            transformPath=tmpPath+os.sep+'TransformParameters.0.txt'
+            launchTransformix(elastixDir,movingPath,transformPath,tmpPath)
+            _,jacVol=load_nii(tmpPath+os.sep+'spatialJacobian.nii')
+            jac[:,:,:,i] = jacVol
+            
+            log.write('         Elapsed time: '+str(time.time()-start)+' s\n');log.flush()
+        
+
+    shutil.rmtree(tmpPath) ##clean temporal directory
+    save_nii(nonRigidUterus,boldNii,outPath+os.sep+outName+'.nii.gz')
+    save_nii(jac,boldNii,outPath+os.sep+'jac_'+outName+'.nii.gz')
+    
+    totalTime=time.time()-begin
+    log.write('\nDONE SUCCESSFULLY!          TOTAL ELAPSED TIME: '+str(totalTime/3600)+' hours')
+    log.close()
+    
+    

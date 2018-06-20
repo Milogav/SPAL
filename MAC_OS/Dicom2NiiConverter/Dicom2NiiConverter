@@ -1,0 +1,32 @@
+#!/Applications/Slicer.app/Contents/bin/python-real
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import subprocess
+  
+if __name__ == '__main__':
+    inputDir=sys.argv[1]
+    outDir=sys.argv[2]
+    fileName=sys.argv[3]
+
+    if outDir == '.':
+          outDir=os.path.realpath(outDir)
+          
+    tmpOutDir=outDir+os.sep+'tmpOut'
+    if os.path.isdir(tmpOutDir):
+       os.rmdir(tmpOutDir)  
+    os.makedirs(tmpOutDir)
+
+    moduleDir = os.path.dirname(os.path.realpath(__file__))
+    configDir = os.path.dirname(moduleDir)+os.sep+'_config'
+    with open(configDir+os.sep+'dcm2niiPath.txt','r') as f:
+        dcm2niiPath=f.read()
+
+    process = subprocess.check_output([dcm2niiPath,'-o',tmpOutDir,inputDir])
+    files=os.listdir(tmpOutDir)
+    for elem in files:
+        pos=elem.find('.')
+        extension=elem[pos:]
+        os.rename(tmpOutDir+os.sep+elem,outDir+os.sep+fileName+extension)
+    os.rmdir(tmpOutDir)

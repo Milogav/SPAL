@@ -1,0 +1,43 @@
+#!/Applications/Slicer.app/Contents/bin/python-real
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import nibabel as nib
+import numpy as np
+
+def load_nii(imgPath):
+    imgNii = nib.load(imgPath)
+    array = imgNii.get_data()
+    return imgNii,array
+
+def save_nii(array,nii_data,out_path):
+    if not '.gz' in out_path:
+        out_path += '.gz'
+    img = nib.Nifti1Image(array, nii_data.affine, nii_data.header)
+    nib.save(img,out_path)
+  
+if __name__ == '__main__':
+      boldPath = sys.argv[1]
+      startFrame = int(sys.argv[2])
+      endFrame = int(sys.argv[3])+1
+      outPath = sys.argv[4]
+      outName = sys.argv[5]
+      
+      if outPath == '.':
+          outPath = os.path.realpath(outPath)
+          
+      boldFileName = os.path.basename(boldPath)
+      averageBoldPath = outPath+os.sep+outName+'.nii.gz'
+      
+      boldNii,bold = load_nii(boldPath)
+
+      n = bold.shape[-1]
+      
+      if endFrame > n:
+          endFrame = n
+
+      print('Averaging frame from volume '+str(startFrame)+' to '+str(endFrame-1))
+      meanBold = np.mean(bold[:,:,:,startFrame:endFrame], axis = 3, dtype = bold.dtype)
+      
+      save_nii(meanBold,boldNii,averageBoldPath)

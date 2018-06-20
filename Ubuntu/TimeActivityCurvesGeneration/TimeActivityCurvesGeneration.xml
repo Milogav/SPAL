@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+
+  <category>Motion correction</category>
+  <title>6 - Time activity curves generation</title>
+  <description>This module generates the time activity curves (.csv format) within the input mask and ignoring the outlier volumes found in the previous steps (if any)</description>
+  <version>1.0</version>
+  <documentation-url></documentation-url>
+  <license></license>
+  <contributor>Miguel Lopez Gavilan</contributor>
+
+<parameters>
+    <label>IO</label>
+    <description>Input/output parameters</description>
+
+    <file fileExtensions=".nii,.gz">
+	    <name>correctedBoldSelector</name>
+        <label>Corrected BOLD volume: </label>
+        <channel>input</channel>
+        <index>0</index>
+    </file>
+
+    <file fileExtensions=".nii,.gz">
+	    <name>maskSelector</name>
+        <label>ROI mask: </label>
+        <channel>input</channel>
+        <index>1</index>
+    </file>
+
+    <file fileExtensions=".txt">
+	    <name>outlierFirstList</name>
+        <label>ROI 1st outliers: </label>
+        <channel>input</channel>
+        <index>2</index>
+	    <default>None</default>
+    </file>
+
+    <file fileExtensions=".txt">
+	    <name>outlierSecondList</name>
+        <label>ROI 2nd outliers: </label>
+        <channel>input</channel>
+        <index>3</index>
+	    <default>None</default>
+    </file>
+
+    <directory> 
+	    <name>outputSelector</name>
+        <label>Output folder: </label>
+        <channel>input</channel>
+        <index>4</index>
+    </directory>
+
+    <string>
+       	<name>outputCurvesName</name>
+        <label>Output name for time activity curve file: </label>
+        <channel>input</channel>
+        <default>TimeActivityCurve</default>
+        <index>5</index>
+    </string>
+
+  </parameters>
+
+</executable>

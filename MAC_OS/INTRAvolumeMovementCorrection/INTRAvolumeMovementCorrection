@@ -1,0 +1,214 @@
+#!/Applications/Slicer.app/Contents/bin/python-real
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import subprocess
+import nibabel as nib
+import numpy as np
+from scipy.interpolate import RegularGridInterpolator
+import time
+import shutil
+from copy import deepcopy
+  
+def load_nii(imgPath):
+    imgNii=nib.load(imgPath)
+    array=imgNii.get_data()
+    return imgNii,array
+
+def save_nii(array,nii_data,out_path):
+    if not '.gz' in out_path:
+        out_path += '.gz'
+    img = nib.Nifti1Image(array, nii_data.affine, nii_data.header)
+    nib.save(img,out_path)
+
+def launchElastix(elastixDir,fixedPath,movingPath,outPath,parametersPath,initialTransformPath=None):
+    executablePath=elastixDir+os.sep+'bin'+os.sep+'elastix'
+    print([executablePath,'-f',fixedPath,'-m',movingPath,'-out',outPath,'-p',parametersPath])
+    if not initialTransformPath:
+        subprocess.check_output([executablePath,'-f',fixedPath,'-m',movingPath,'-out',outPath,'-p',parametersPath])
+    else:
+        subprocess.check_output([executablePath,'-f',fixedPath,'-m',movingPath,'-out',outPath,'-p',parametersPath,'-t0',initialTransformPath])
+
+def launchTransformix(elastixDir,imgPath,transformPath,outPath):
+    executablePath=elastixDir+os.sep+'bin'+os.sep+'transformix'
+    subprocess.check_output([executablePath,'-tp',transformPath,'-out',outPath,'-in',imgPath,'-def','all','-jac','all'])
+
+def clearInitialTransform(transformPath):
+    f1=open(transformPath,'r')
+    f2=open(transformPath+'new','w')
+    for line in f1:
+        if '(InitialTransform' in line:
+            line='(InitialTransformParametersFileName "NoInitialTransform")\n'
+        f2.write(line)
+    f2.close()
+    f1.close()
+    os.remove(transformPath)
+    os.rename(transformPath+'new',transformPath)
+
+def interpolateVolume(vol,newShape):
+    rv,cv,pv = vol.shape
+
+    newShape = tuple(map(int,newShape))  ##ensure new dimensions are integer values
+    rn,cn,pn = newShape
+    
+    X = np.linspace(0,rv-1,rv)
+    Y = np.linspace(0,cv-1,cv)
+    Z = np.linspace(0,pv-1,pv)
+
+    f = RegularGridInterpolator((X,Y,Z),vol,method='linear')
+
+    X = np.linspace(0,rv-1,rn)
+    Y = np.linspace(0,cv-1,cn)
+    Z = np.linspace(0,pv-1,pn)
+
+    x,y,z = np.meshgrid(X,Y,Z,indexing='ij')
+
+    interpVol = f((x,y,z))
+
+    return interpVol
+              
+if __name__ == '__main__':
+
+    boldPath = sys.argv[1]
+    outPath = sys.argv[2]
+    outName = sys.argv[3]
+    
+    if outPath == '.':  ###if the output folder is the HOME directory, the path string must be corrected
+        outPath=os.path.realpath(outPath)
+
+    ###get module and conifg folder location, load elastix path from the textfile and set up the environment variables
+    moduleDir=os.path.dirname(os.path.realpath(__file__))
+    configDir=os.path.dirname(moduleDir)+os.sep+'_config'
+    f=open(configDir+os.sep+'elastixPath.txt','r')
+    elastixDir=f.read().rstrip()
+    f.close()
+    if sys.platform == 'darwin':
+        dyldpath=os.environ['DYLD_LIBRARY_PATH']
+        os.environ['DYLD_LIBRARY_PATH']=dyldpath+':'+elastixDir+os.sep+'lib'
+    else:
+        ldpath=os.environ['LD_LIBRARY_PATH']
+        os.environ['LD_LIBRARY_PATH']=ldpath+':'+elastixDir+os.sep+'lib'
+    
+    tmpPath=outPath+os.sep+'tmp' ###create temporary folder to store the iteration results. It will be deleted at the end of the module execution
+
+    if not os.path.isdir(tmpPath):
+        os.mkdir(tmpPath)
+
+    boldFileName=os.path.basename(boldPath)
+    boldNii,bold=load_nii(boldPath)  ##load original bold volume
+    
+    r,c,p,numVols=bold.shape
+    
+    evenPath=tmpPath+os.sep+'evenVol.nii'  ##define the temporary paths to store the even and odd subvolumes inside the temporary folder
+    oddPath=tmpPath+os.sep+'oddVol.nii'
+
+    #### load elastix transformation parameter files from the module directory
+    splineParametersPath=configDir+os.sep+'RegistrationParameterFiles'+os.sep+'intraMCnonRigidParameters.txt'  
+
+    identityTransformPath=configDir+os.sep+'RegistrationParameterFiles'+os.sep+'IdentityTemplate.txt'
+
+    f=open(configDir+os.sep+'RegistrationParameterFiles'+os.sep+'CombinationTemplate.txt','r')
+    combinationTemplate=f.read()
+    f.close()
+
+    inverseParametersPath=configDir+os.sep+'RegistrationParameterFiles'+os.sep+'Inversion.txt'
+
+    logDir = outPath+os.sep+'Logs'
+    if not os.path.isdir(logDir):
+        os.makedirs(logDir)
+
+    log=open(logDir+os.sep+'log_step2.txt','w') #### open a textfile in the output directory to watch the execution progress
+    log.write('STARTING FIRST OUTLIER REJECTION AND REFERENCE VOLUME COMPUTATION\n');log.flush()##update progress textfile
+    begin=time.time()
+
+    evenBold=bold[:,:,0::2,:]
+    oddBold=bold[:,:,1::2,:]
+    
+    niiDataSubVol=deepcopy(boldNii)
+    pixdims=boldNii.header.get_zooms()
+    niiDataSubVol.header.set_zooms(pixdims[0:2]+(pixdims[2]*2,pixdims[3])) ###update subvolume's voxel dimensions (double slice thickness)
+
+    jacEven=np.zeros(evenBold.shape)  ##initialize the volume sequences to store the even and odd jacobian matrices
+    jacOdd=np.zeros(oddBold.shape)
+    
+    for i in range(0,numVols): ##iterate over each volume in the time sequence
+        
+        log.write('Correcting volume '+str(i)+'/'+str(numVols-1)+' ');log.flush()  
+        
+        start=time.time()
+        
+        evenVol=evenBold[:,:,:,i] ##extract current even and odd subvolumes
+        oddVol=oddBold[:,:,:,i]
+
+        save_nii(evenVol,niiDataSubVol,evenPath) ###save the subvolumes as nii files in the temporary folder
+        save_nii(oddVol,niiDataSubVol,oddPath)
+
+        #################################### even to odd volume registration ######################################
+        launchElastix(elastixDir,oddPath,evenPath,tmpPath,splineParametersPath)
+        os.rename(tmpPath+os.sep+'TransformParameters.0.txt',tmpPath+os.sep+'T_even_odd.txt')
+
+        ##Define combination transform between even-odd and identity
+        transformPath=tmpPath+os.sep+'CombinationTransform_even_odd.txt'
+        f=open(transformPath,'w')
+        f.write(combinationTemplate)
+        f.write('(SubTransforms "'+identityTransformPath+'" "'+tmpPath+os.sep+'T_even_odd.txt")\n')
+        f.close()
+        
+        ##compute inverse of the combination transform
+        launchElastix(elastixDir,oddPath,oddPath,tmpPath,inverseParametersPath,transformPath)
+
+        ##apply inverse transform to odd volume using transformix
+        transformPath=tmpPath+os.sep+'TransformParameters.0.txt'
+        clearInitialTransform(transformPath)
+        launchTransformix(elastixDir,oddPath,transformPath,tmpPath)
+        os.rename(tmpPath+os.sep+'result.nii',tmpPath+os.sep+'regOddVol.nii')
+
+        _,jac=load_nii(tmpPath+os.sep+'spatialJacobian.nii')   ### get the jacobian of the current odd volume tranformation and store it in the odd jacobian volume sequence
+        jacOdd[:,:,:,i]=jac
+        
+        ########################################## odd to even volume registration #############################################
+        launchElastix(elastixDir,evenPath,oddPath,tmpPath,splineParametersPath)
+        os.rename(tmpPath+os.sep+'TransformParameters.0.txt',tmpPath+os.sep+'T_odd_even.txt')
+
+        ##Define combination transform between even-odd and identity
+        transformPath=tmpPath+os.sep+'CombinationTransform_odd_even.txt'
+        f=open(transformPath,'w')
+        f.write(combinationTemplate)
+        f.write('(SubTransforms "'+identityTransformPath+'" "'+tmpPath+os.sep+'T_odd_even.txt")\n')
+        f.close()
+        
+        ##compute inverse of the combination transform
+        launchElastix(elastixDir,evenPath,evenPath,tmpPath,inverseParametersPath,transformPath)
+
+        ##apply inverse transform to odd volume using transformix
+        transformPath=tmpPath+os.sep+'TransformParameters.0.txt'
+        clearInitialTransform(transformPath)
+        launchTransformix(elastixDir,evenPath,transformPath,tmpPath)
+        os.rename(tmpPath+os.sep+'result.nii',tmpPath+os.sep+'regEvenVol.nii')
+
+        _,jac=load_nii(tmpPath+os.sep+'spatialJacobian.nii') ### get the jacobian of the current odd volume tranformation and store it in the odd jacobian volume sequence
+        jacEven[:,:,:,i]=jac
+        
+        ## load groupwise registered even and odd subvolumes with doubled slice thickness
+        _,regEvenVol=load_nii(tmpPath+os.sep+'regEvenVol.nii')
+        _,regOddVol=load_nii(tmpPath+os.sep+'regOddVol.nii')
+
+        ## update current corrected volume in the bold series as the voxelwise average of the registered subvolumes, interpolated to original resolution
+        regEvenVol=interpolateVolume(regEvenVol,(r,c,p))
+        regOddVol=interpolateVolume(regOddVol,(r,c,p))
+
+        bold[:,:,:,i]=(regEvenVol+regOddVol)/2
+
+        log.write('         Elapsed time: '+str(time.time()-start)+' s\n');log.flush()
+        
+
+    totalTime=time.time()-begin
+    log.write('\nDONE SUCCESSFULLY!          TOTAL ELAPSED TIME: '+str(totalTime/3600)+' hours')  ###get overall execution time, update progress file and close it
+    log.close()
+    
+    shutil.rmtree(tmpPath) #### remove temporary folder
+
+    save_nii(bold,boldNii,outPath+os.sep+outName+'.nii.gz') ## save intravolume corrected bold sequence
+    save_nii(jacOdd,niiDataSubVol,outPath+os.sep+'jacOdd_'+outName+'.nii.gz') ## save jacobian volume sequences
+    save_nii(jacEven,niiDataSubVol,outPath+os.sep+'jacEven_'+outName+'.nii.gz')

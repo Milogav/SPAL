@@ -1,0 +1,69 @@
+#!/Applications/Slicer.app/Contents/bin/python-real
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import nibabel as nib
+import numpy as np
+  
+def load_nii(imgPath):
+    imgNii = nib.load(imgPath)
+    array = imgNii.get_data()
+    return imgNii,array
+
+def extractOutliers(filepath):
+    with open(filepath,'r') as F:
+        data = F.read().split()
+        if data:
+            outliers = [int(x) for x in data]
+        else:
+            outliers=[]
+    return outliers
+
+if __name__ == '__main__':
+    
+    boldPath = sys.argv[1] 
+    maskPath = sys.argv[2] 
+    firstOutliersPath = sys.argv[3] 
+    secondOutliersPath = sys.argv[4]
+    outPath = sys.argv[5]
+    outName = sys.argv[6]
+
+    outliers=list()
+    if firstOutliersPath.lower() != 'none':
+        outliers1 = extractOutliers(firstOutliersPath)
+
+    if secondOutliersPath.lower() != 'none':
+        outliers2 = extractOutliers(secondOutliersPath)
+ 
+    outliers = outliers1 + outliers2
+    if outliers:
+         outliers = np.unique(np.array(outliers))
+    print('Outliers: '+str(outliers))  
+      
+    ###load bold and mask volumes
+    boldNii,bold = load_nii(boldPath)
+    _,mask = load_nii(maskPath)
+    mask = mask.astype(bool)
+
+    timeStep = boldNii.get_header().get_zooms()[-1]
+
+    ###store the time activity curves in a .csv file
+    with open(outPath+os.sep+outName+'.csv','w') as f:
+        f.write('BOLD_VOLUME,'+boldPath+'\n')
+        f.write('MASK_VOLUME,'+maskPath+'\n')
+        f.write('Volume,Time(sec),Mean,STD\n');f.flush()
+
+        n = bold.shape[-1]
+        
+        for i in range(0,n):
+            time = timeStep * i
+            if i in outliers:
+                mean='-'
+                std='-'
+            else:
+                volume = bold[:,:,:,i]
+                mean = np.mean(volume[mask])
+                std = np.std(volume[mask])
+
+            f.write(str(i)+','+str(time)+','+str(mean)+','+str(std)+'\n');f.flush()

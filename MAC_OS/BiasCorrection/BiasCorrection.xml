@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+
+  <category>Motion correction</category>
+  <title>1 - Bias correction</title>
+  <description>This module applies n4itk bias field correction over the input BOLD fMRI series.</description>
+  <version>1.0</version>
+  <documentation-url></documentation-url>
+  <license></license>
+  <contributor>Miguel Lopez Gavilan</contributor>
+
+<parameters>
+    <label>IO</label>
+    <description>Input/output parameters</description>
+
+    <file>
+	<name>boldSelector</name>
+        <label>Input BOLD volume: </label>
+        <channel>input</channel>
+        <index>0</index>
+    </file>
+
+    <file>
+	<name>maskSelector</name>
+        <label>Input uterus mask: </label>
+        <channel>input</channel>
+        <index>1</index>
+    </file>
+
+    <directory> 
+	<name>outputSelector</name>
+        <label>Output folder: </label>
+        <channel>input</channel>
+        <index>2</index>
+    </directory>
+
+    <string>
+       	<name>outputFilename</name>
+        <label>Output filename: </label>
+        <channel>input</channel>
+        <default>bc_vols</default>
+        <index>3</index>
+    </string>
+
+  </parameters>
+
+  <parameters>
+    <label>Parameters</label>
+    <description>Bias correction parameters</description>
+
+     <integer>
+        <name>startVolSelector</name>
+        <description>Select the first volume of the averaging frame. The first volume of the series is considered to be volume 0.</description>
+        <label>First volume of the averaging frame: </label>
+        <default>0</default>
+        <constraints>
+          <minimum>0</minimum>
+          <maximum>400</maximum>
+          <step>1</step>
+        </constraints>
+        <index>4</index>
+      </integer>
+
+      <integer>
+        <name>endVolSelector</name>
+        <description>Select the last volume of the averaging frame. If this number exceeds the maximum number of volumes in the serie, the last volume is selected.</description>
+        <label>Last volume of the averaging frame: </label>
+        <default>100</default>
+        <constraints>
+          <minimum>1</minimum>
+          <maximum>400</maximum>
+          <step>1</step>
+        </constraints>
+        <index>5</index>
+      </integer>
+
+
+    <integer-vector>
+      <name>bSplineRes</name>
+      <description>Specify N4 BSpline grid resolution as a comma separated list of integers</description>
+      <label>N4 BSpline grid resolution: </label>
+      <default>1,1,1</default>
+      <index>6</index>
+    </integer-vector>
+
+
+    <integer-vector>
+      <name>numIterations</name>
+      <description>Specify N4 maximum number of iteration at each level of resolution</description>
+      <label>N4 Number of iterations: </label>
+      <default>200,200,200</default>
+      <index>7</index>
+    </integer-vector>
+
+
+     <integer>
+        <name>factorSelector</name>
+        <description>Specify N4 shrink factor parameter</description>
+        <label>N4 Shrink factor: </label>
+        <default>3</default>
+        <constraints>
+          <minimum>1</minimum>
+          <maximum>20</maximum>
+          <step>1</step>
+        </constraints>
+      <index>8</index>
+      </integer>
+
+
+  </parameters>
+
+
+</executable>

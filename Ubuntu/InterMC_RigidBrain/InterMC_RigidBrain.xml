@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+
+  <category>Motion correction</category>
+  <title>4.2 - Brain rigid registration</title>
+  <description>This module applies the initial rigid inter-volume registration within the uterus mask of the BOLD serie, with respect the reference volume. The rigid transformation parameters are saved in the output folder to be used as initialization for the registrations in the nex steps </description>
+  <version>1.0</version>
+  <documentation-url></documentation-url>
+  <license></license>
+  <contributor>Miguel Lopez Gavilan</contributor>
+
+<parameters>
+    <label>IO</label>
+    <description>Input/output parameters</description>
+
+    <file>
+	<name>boldSelector</name>
+        <label>Intra-MC BOLD volume: </label>
+        <channel>input</channel>
+        <index>0</index>
+    </file>
+
+    <file>
+	<name>refVolumeSelector</name>
+        <label>Reference volume: </label>
+        <channel>input</channel>
+        <index>1</index>
+    </file>
+
+    <file>
+	<name>brainMaskSelector</name>
+        <label>Input uterus mask: </label>
+        <channel>input</channel>
+        <index>2</index>
+    </file>
+
+    <directory> 
+	<name>rigidUterusTransformsDir</name>
+        <label>Initial rigid uterus transforms folder: </label>
+        <channel>input</channel>
+        <index>3</index>
+    </directory>
+
+    <directory> 
+	<name>outputSelector</name>
+        <label>Output folder: </label>
+        <channel>input</channel>
+        <index>4</index>
+    </directory>
+
+    <string>
+       	<name>outputFilename</name>
+        <label>Output filename: </label>
+        <channel>input</channel>
+        <default>inter_mc_brainRigid</default>
+        <index>5</index>
+    </string>
+
+  </parameters>
+
+</executable>

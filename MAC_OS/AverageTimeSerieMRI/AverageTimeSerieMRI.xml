@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+
+  <category>Motion correction.Utils</category>
+  <title>Average MRI time serie</title>
+  <description>This module computes the mean of an input BOLD fMRI series over a selected time frame.</description>
+  <version>1.0</version>
+  <documentation-url></documentation-url>
+  <license></license>
+  <contributor>Miguel Lopez Gavilan</contributor>
+
+<parameters>
+    <description>Input/output parameters</description>
+
+    <file>
+	<name>boldSelector</name>
+        <label>Input BOLD directory: </label>
+        <channel>input</channel>
+        <index>0</index>
+    </file>
+
+     <integer>
+        <name>startTimeSelector</name>
+        <description>Select the first volume of the averaging frame. The first volume of the series is considered to be volume 0.</description>
+        <label>First volume of the averaging frame: </label>
+        <default>0</default>
+        <constraints>
+          <minimum>0</minimum>
+          <maximum>400</maximum>
+          <step>1</step>
+        </constraints>
+        <index>1</index>
+      </integer>
+
+      <integer>
+        <name>endTimeSelector</name>
+        <description>Select the last volume of the averaging frame. If this number exceeds the maximum number of volumes in the serie, the last volume is selected.</description>
+        <label>Last volume of the averaging frame: </label>
+        <default>100</default>
+        <constraints>
+          <minimum>1</minimum>
+          <maximum>400</maximum>
+          <step>1</step>
+        </constraints>
+        <index>2</index>
+      </integer>
+
+    <directory> 
+	<name>outputSelector</name>
+        <label>Output folder: </label>
+        <channel>input</channel>
+        <index>3</index>
+    </directory>
+
+    <string>
+       	<name>outputFilename</name>
+        <label>Output filename: </label>
+        <channel>input</channel>
+        <default>avg_vols</default>
+        <index>4</index>
+    </string>
+
+  </parameters>
+
+
+</executable>

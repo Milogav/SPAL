@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+
+  <category>Motion correction</category>
+  <title>3 - 1st outlier rejection and reference volume extraction</title>
+  <description>This module computes the first outlier rejection and the reference volume used for registration in the next steps. </description>
+  <version>1.0</version>
+  <documentation-url></documentation-url>
+  <license></license>
+  <contributor>Miguel Lopez Gavilan</contributor>
+
+<parameters>
+    <label>IO</label>
+    <description>Input/output parameters</description>
+
+    <file>
+	<name>boldSelector</name>
+        <label>Intra-MC BOLD volume: </label>
+        <channel>input</channel>
+        <index>0</index>
+    </file>
+
+    <file>
+	<name>uterusMaskSelector</name>
+        <label>Uterus mask: </label>
+        <channel>input</channel>
+        <index>1</index>
+    </file>
+
+    <file>
+	<name>brainMaskSelector</name>
+        <label>Brain mask: </label>
+        <channel>input</channel>
+	<default>None</default>
+        <index>2</index>
+    </file>
+
+    <string>
+    	<name>brainThresholds</name>
+    	<label>Brain compression/expansion range (tc te): </label>
+    	<channel>input</channel>
+	<default>0.8 1.2</default>
+	<index>3</index>		  
+    </string>
+
+    <file>
+	<name>liverMaskSelector</name>
+        <label>Input liver mask: </label>
+        <channel>input</channel>
+	<default>None</default>
+        <index>4</index>
+    </file>
+
+    <string>
+    	<name>liverThresholds</name>
+    	<label>Liver compression/expansion range (tc te): </label>
+    	<channel>input</channel>
+	<default>0.7 1.3</default>
+	<index>5</index>		  
+    </string>
+
+    <file fileExtensions=".nii,.gz">
+	<name>placentaMaskSelector</name>
+        <label>Placenta mask: </label>
+        <channel>input</channel>
+	<default>None</default>
+        <index>6</index>
+    </file>
+
+    <string>
+    	<name>PlacentaThresholds</name>
+    	<label>Placenta compression/expansion range (tc te): </label>
+    	<channel>input</channel>
+	<default>0.5 1.5</default>
+	<index>7</index>		  
+    </string>
+
+    <file>
+	<name>oddJacobian</name>
+        <label>Odd jacobian from Intra-MC: </label>
+        <channel>input</channel>
+        <index>8</index>
+    </file>
+
+    <file>
+	<name>evenJacobian</name>
+        <label>Even jacobian from Intra-MC: </label>
+        <channel>input</channel>
+        <index>9</index>
+    </file>
+
+    <directory> 
+	<name>outputSelector</name>
+        <label>Output folder: </label>
+        <channel>input</channel>
+        <index>10</index>
+    </directory>
+
+    <string>
+       	<name>outputOutliersDirName</name>
+        <label>Output name for outlier's folder': </label>
+        <channel>input</channel>
+        <default>Outliers</default>
+        <index>11</index>
+    </string>
+
+    <string>
+       	<name>outputRefVolFilename</name>
+	<description>The final filename will contain the number of the volume selected as reference volume in the bold series. Do NOT remove this number from the filename as it is required for correct computation of the next modules. </description>
+        <label>Prefix for reference volume filename: </label>
+        <channel>input</channel>
+        <default>refVol</default>
+        <index>12</index>
+    </string>
+
+  </parameters>
+
+</executable>

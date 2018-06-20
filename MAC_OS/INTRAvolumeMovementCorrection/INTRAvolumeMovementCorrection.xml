@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+
+  <category>Motion correction</category>
+  <title>2 - Intravolume movement correction</title>
+  <description>This module computes the intravolume motion correction due to an interleaved adquisition. It performs non-rigid registration between the odd and even expanded volumes and then computes the average volume.</description>
+  <version>1.0</version>
+  <documentation-url></documentation-url>
+  <license></license>
+  <contributor>Miguel Lopez Gavilan</contributor>
+
+<parameters>
+    <label>IO</label>
+    <description>Input/output parameters</description>
+
+    <file fileExtensions=".nii,.gz">
+	<name>boldSelector</name>
+        <label>Input BOLD volume: </label>
+        <channel>input</channel>
+        <index>0</index>
+    </file>
+
+    <directory> 
+	<name>outputSelector</name>
+        <label>Output folder: </label>
+        <channel>input</channel>
+        <index>1</index>
+    </directory>
+
+    <string>
+       	<name>outputFilename</name>
+        <label>Output filename: </label>
+        <channel>input</channel>
+        <default>intra_mc_vols</default>
+        <index>2</index>
+    </string>
+
+  </parameters>
+
+</executable>

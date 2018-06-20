@@ -1,0 +1,38 @@
+(FixedInternalImagePixelType "float")
+(MovingInternalImagePixelType "float")
+(FixedImageDimension 3)
+(MovingImageDimension 3)
+
+(UseDirectionCosines "true")
+(Registration "MultiResolutionRegistration")
+(Interpolator "BSplineInterpolator")
+(ResampleInterpolator "FinalBSplineInterpolator")
+(Resampler "DefaultResampler")
+(FixedImagePyramid "FixedSmoothingImagePyramid")
+(MovingImagePyramid "MovingSmoothingImagePyramid")
+(Optimizer "AdaptiveStochasticGradientDescent")
+(Transform "BSplineTransform")
+(Metric "AdvancedMattesMutualInformation")
+
+(FinalGridSpacingInPhysicalUnits 10.0 10.0 10.0)
+
+(NumberOfHistogramBins 32)
+(ErodeMask "false")
+(NumberOfResolutions 3)
+(MaximumNumberOfIterations 2000)
+
+
+(ImageSampler "RandomCoordinate")
+(NumberOfSpatialSamples 2048)
+(NewSamplesEveryIteration "true")
+(CheckNumberOfSamples "true")
+(MaximumNumberOfSamplingAttempts 10)
+
+(BSplineInterpolationOrder 1)
+(FinalBSplineInterpolationOrder 3)
+(DefaultPixelValue -1.000000)
+(WriteResultImage "true")
+(ResultImagePixelType "float")
+(ResultImageFormat "nii")
+
+(HowToCombineTransforms "Compose" )
