@@ -7,4 +7,4 @@ This repository contains a 3DSlicer extension written in python than performs sp
         http://dx.doi.org/10.1002/jmri.25585
 
 
-Please, refer to the [wiki](https://github.com/Milogav/SPAL/wiki) page in the repository to check the dependencies, the installation instructions and the user manual.
+Please, refer to the [wiki](https://github.com/Milogav/SPAL/wiki) page in the repository to check the [dependencies](https://github.com/Milogav/SPAL/wiki/Dependencies), the [installation](https://github.com/Milogav/SPAL/wiki/Installation) instructions and the user [manual](https://github.com/Milogav/SPAL/wiki/User-manual).
