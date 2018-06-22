@@ -36,7 +36,7 @@ def launchTransformix(elastixDir,imgPath,transformPath,outPath):
 def getRefIdx(refVolPath):
     pos = refVolPath.find('.')
     refVolPath = refVolPath[0:pos].split('_')
-    idx = int(refVolPath[1])
+    idx = int(refVolPath[-1])
     return idx
 #####################################################################################
                 
