@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <executable>
 
-  <category>Motion correction</category>
+  <category>SPAL</category>
   <title>2 - Intravolume movement correction</title>
   <description>This module computes the intravolume motion correction due to an interleaved adquisition. It performs non-rigid registration between the odd and even expanded volumes and then computes the average volume.</description>
   <version>1.0</version>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <executable>
 
-  <category>Motion correction.Utils</category>
+  <category>SPAL.Utils</category>
   <title>Average MRI time serie</title>
   <description>This module computes the mean of an input BOLD fMRI series over a selected time frame.</description>
   <version>1.0</version>
@@ -14,7 +14,7 @@
 
     <file>
 	<name>boldSelector</name>
-        <label>Input BOLD directory: </label>
+        <label>Input BOLD volume: </label>
         <channel>input</channel>
         <index>0</index>
     </file>

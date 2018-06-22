@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <executable>
 
-  <category>Motion correction</category>
+  <category>SPAL</category>
   <title>6 - Time activity curves generation</title>
   <description>This module generates the time activity curves (.csv format) within the input mask and ignoring the outlier volumes found in the previous steps (if any)</description>
   <version>1.0</version>

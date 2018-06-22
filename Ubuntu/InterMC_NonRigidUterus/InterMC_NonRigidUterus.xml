@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <executable>
 
-  <category>Motion correction</category>
+  <category>SPAL</category>
   <title>4.3 - Non-rigid uterus registration</title>
   <description>This module applies the non rigid inter-volume registration within the uterus mask of the BOLD serie, with respect the reference volume and using the rigid transformation within uterus as the initialization transform</description>
   <version>1.0</version>

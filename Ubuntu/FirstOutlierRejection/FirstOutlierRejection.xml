@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <executable>
 
-  <category>Motion correction</category>
+  <category>SPAL</category>
   <title>3 - 1st outlier rejection and reference volume extraction</title>
   <description>This module computes the first outlier rejection and the reference volume used for registration in the next steps. </description>
   <version>1.0</version>

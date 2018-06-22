@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <executable>
 
-  <category>Motion correction</category>
+  <category>SPAL</category>
   <title>4.1 - Initial uterus rigid registration</title>
   <description>This module applies the initial rigid inter-volume registration within the uterus mask of the BOLD serie, with respect the reference volume. The rigid transformation parameters are saved in the output folder to be used as initialization for the registrations in the nex steps </description>
   <version>1.0</version>

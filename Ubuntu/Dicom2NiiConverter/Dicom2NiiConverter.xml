@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <executable>
 
-  <category>Motion correction.Utils</category>
+  <category>SPAL.Utils</category>
   <title>Dicom2nii conversion</title>
   <description>This module converts the dicom images inside a dicom series folder to a single nii.gz file with the filename specified.</description>
   <version>1.0</version>
