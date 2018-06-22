@@ -25,7 +25,7 @@ def save_nii(array,nii_data,out_path):
 def getRefIdx(refVolPath):
     pos = refVolPath.find('.')
     refVolPath = refVolPath[0:pos].split('_')
-    idx = int(refVolPath[1])
+    idx = int(refVolPath[-1])
     return idx
                 
 #####################################################################################
